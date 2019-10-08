@@ -77,9 +77,10 @@ namespace WindowsFormsApp1
         private double real_arm_length;
         private double real_gap_angle;
         private double real_area;
-        
+        private double round_count;
 
-        
+
+
 
         List<PointF> split_point_list = new List<PointF> { };
         List<Joint> split_point_list_3d = new List<Joint> { };
@@ -91,7 +92,7 @@ namespace WindowsFormsApp1
         List<DateTime> split_second = new List<DateTime> { };
         
         
-        public float split_angle_pie=25;
+        public float split_angle_pie=10;
         private Bitmap bmp;
         private Boolean save_bmp = false;
         private List<Bone> bones = new List<Bone>()
@@ -708,7 +709,8 @@ namespace WindowsFormsApp1
                                 {
                                     double time_interval = compute_seconds
                                         (split_second[i - 1], split_second[i]);
-                                    double accele = Math.Abs(((motion_distance / time_interval) - last_speed) / time_interval);
+                                    double accele = Math.Abs((motion_distance - last_speed * time_interval) * 2 / (time_interval * time_interval));
+                                    //double accele = Math.Abs(((motion_distance / time_interval) - last_speed) / time_interval);
                                     last_speed = accele * time_interval;
                                     time_intervals.Add((float)time_interval);
                                     acceleration.Add((float)accele);
@@ -719,8 +721,8 @@ namespace WindowsFormsApp1
                             if (!calib_hand_end.IsEmpty)
                             {
 
-                                Pen pen_start = new Pen(Color.Red);
-                                //pen_start.Width = 5;
+                                Pen pen_start = new Pen(Color.Black);
+                                pen_start.Width = 3;
                                 PointF fixed_calib_hand_end = CalculatePoint
                                     (calib_shoulder, calib_hand_end, arm_line_length);
 
@@ -732,6 +734,8 @@ namespace WindowsFormsApp1
 
                                 //left
                                 SolidBrush brush_fill = new SolidBrush(Color.FromArgb(236, 228, 228));
+                                SolidBrush brush_fill_quick = new SolidBrush(Color.LightSeaGreen);
+                                SolidBrush brush_fill_slow = new SolidBrush(Color.Red);
                                 RectangleF left_rect =
                                     new RectangleF(calib_shoulder.X - (float)arm_line_length,
                                     calib_shoulder.Y - (float)arm_line_length
@@ -742,7 +746,7 @@ namespace WindowsFormsApp1
 
                                 //Vector2 start_vector = new 
                                 //    Vector2(calib_left_hand_start.X- calib_left_shoulder.X, calib_left_hand_start.Y- calib_left_shoulder.Y);
-                                double round_count = Math.Floor(between_angle / split_angle_pie);
+                                round_count = Math.Floor(between_angle / split_angle_pie);
                                 Console.WriteLine("Angle: {0}", between_angle);
                                 //for (int i = 0; i < ((int)round_count); i++) {
                                 //    Vector2 new_vector= RotateBy(start_vector,-split_angle_pie,false);
@@ -757,20 +761,22 @@ namespace WindowsFormsApp1
                                     final_angle = (float)between_angle - (float)round_count * split_angle_pie;
 
                                 }
-                                Pen pen_split = new Pen(Color.Red);
+                                Pen pen_split = new Pen(Color.Black);
                                 pen_split.Width = 3;
-                                pen_split.DashStyle = System.Drawing.Drawing2D.DashStyle.DashDot;
+                                
 
                                 Color[] colors = new Color[] {Color.Orange,Color.Yellow,Color.Gold,Color.LightBlue
-                        ,Color.Blue, Color.Purple};
+                        ,Color.Blue,Color.White,Color.Orange,Color.Yellow,Color.Gold,Color.LightBlue
+                        ,Color.Blue,Color.White,Color.Orange,Color.Yellow,Color.Gold,Color.LightBlue
+                        ,Color.Blue,Color.White};
 
                                 Console.WriteLine("acce: {0}, round_count: {1}", acceleration.Count, round_count);
-                                if (acceleration.Count == round_count && round_count > 0)
+                                if (acceleration.Count >= round_count && round_count > 0)
                                 {
 
-                                    for (int i = 0; i < acceleration.Count; i++)
+                                    for (int i = 0; i <round_count; i++)
                                     {
-
+                                        //Pen pen_arrow = new Pen(Color.White, (float)1);
                                         Pen pen_arrow = new Pen(colors[i], (float)1.5);
                                         GraphicsPath capPath = new GraphicsPath();
                                         capPath.AddLine(-10, 0, 10, 0);
@@ -779,41 +785,96 @@ namespace WindowsFormsApp1
 
                                         pen_arrow.CustomEndCap = new System.Drawing.Drawing2D.CustomLineCap(null, capPath);
 
-                                        System.Drawing.Font drawFont = new System.Drawing.Font("Arial", 15);
-                                        SolidBrush brush_string = new SolidBrush(colors[i]);
+                                        //System.Drawing.Font drawFont = new System.Drawing.Font("Arial", 12);
+                                        //SolidBrush brush_string = new SolidBrush(Color.White);
 
 
                                         Console.WriteLine(split_point_list[i]);
 
                                         if (i == 0)
                                         {
-                                            e.Graphics.FillPolygon(brush_fill,
+                                            e.Graphics.FillPolygon(brush_fill_quick,
                                                 new PointF[] { calib_shoulder, calib_hand_start, split_point_list[i] });
                                             //e.Graphics.DrawLine(pen_start, calib_left_hand_start, left_split_point_list[i]);
 
                                             e.Graphics.DrawLine(pen_arrow, split_point_list[i],
                                                 CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                            //String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
+                                            //e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
+                                        }
+                                        else
+                                        {   
+                                            if(acceleration[i]>acceleration[i-1])
+                                                e.Graphics.FillPolygon(brush_fill_quick,
+                                                    new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            else
+                                                e.Graphics.FillPolygon(brush_fill_slow,
+                                                    new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            //e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
+
+                                            e.Graphics.DrawLine(pen_arrow, split_point_list[i],
+                                                CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                            //String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
+                                            //e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
+                                        }
+                                        e.Graphics.DrawLine(pen_split, calib_shoulder, split_point_list[i]);
+                                        pen_arrow.Dispose();
+                                    }
+                                    
+                                   e.Graphics.FillPolygon(brush_fill_slow,
+                                               new PointF[] { calib_shoulder, split_point_list[(int)round_count - 1], fixed_calib_hand_end });
+
+                                    e.Graphics.DrawLine(pen_start, split_point_list[(int)round_count - 1], fixed_calib_hand_end);
+
+
+                                    for (int i = 0; i < round_count; i++)
+                                    {
+                                        //Pen pen_arrow = new Pen(Color.White, (float)1);
+                                        ////Pen pen_arrow = new Pen(colors[i], (float)1.5);
+                                        //GraphicsPath capPath = new GraphicsPath();
+                                        //capPath.AddLine(-10, 0, 10, 0);
+                                        //capPath.AddLine(-10, 0, 0, 10);
+                                        //capPath.AddLine(0, 10, 10, 0);
+
+                                        //pen_arrow.CustomEndCap = new System.Drawing.Drawing2D.CustomLineCap(null, capPath);
+
+                                        System.Drawing.Font drawFont = new System.Drawing.Font("Arial", 12);
+                                        SolidBrush brush_string = new SolidBrush(Color.White);
+
+
+                                       
+
+                                        if (i == 0)
+                                        {
+                                            //e.Graphics.FillPolygon(brush_fill_quick,
+                                            //    new PointF[] { calib_shoulder, calib_hand_start, split_point_list[i] });
+                                            //e.Graphics.DrawLine(pen_start, calib_left_hand_start, left_split_point_list[i]);
+
+                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
+                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
                                             String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
                                             e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
                                         }
                                         else
                                         {
-                                            e.Graphics.FillPolygon(brush_fill,
-                                                new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
-                                            //e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
+                                            //if (acceleration[i] > acceleration[i - 1])
+                                            //    e.Graphics.FillPolygon(brush_fill_quick,
+                                            //        new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            //else
+                                            //    e.Graphics.FillPolygon(brush_fill_slow,
+                                            //        new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            ////e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
 
-                                            e.Graphics.DrawLine(pen_arrow, split_point_list[i],
-                                                CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
+                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
                                             String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
                                             e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
                                         }
-                                        e.Graphics.DrawLine(pen_split, calib_shoulder, split_point_list[i]);
-                                        pen_arrow.Dispose();
+                                        //e.Graphics.DrawLine(pen_split, calib_shoulder, split_point_list[i]);
+                                        //pen_arrow.Dispose();
                                     }
-                                    e.Graphics.FillPolygon(brush_fill,
-                                                new PointF[] { calib_shoulder, split_point_list[(int)round_count - 1], fixed_calib_hand_end });
-                                    e.Graphics.DrawLine(pen_start, split_point_list[(int)round_count - 1], fixed_calib_hand_end);
-                                    
+
+
                                     if (save_state)
                                     {
                                         end_num = frame_count;
@@ -934,7 +995,7 @@ namespace WindowsFormsApp1
                                 {
                                     double time_interval = compute_seconds
                                         (split_second[i - 1], split_second[i]);
-                                    double accele = Math.Abs(((motion_distance / time_interval) - last_speed) / time_interval);
+                                    double accele = Math.Abs((motion_distance - last_speed * time_interval) * 2 / (time_interval * time_interval));
                                     last_speed = accele * time_interval;
                                     time_intervals.Add((float)time_interval);
                                     acceleration.Add((float)accele);
@@ -944,8 +1005,8 @@ namespace WindowsFormsApp1
                             if (!calib_hand_end.IsEmpty)
                             {
 
-                                Pen pen_start = new Pen(Color.Red);
-                                //pen_start.Width = 5;
+                                Pen pen_start = new Pen(Color.Black);
+                                pen_start.Width = 3;
                                 PointF fixed_calib_hand_end = CalculatePoint
                                     (calib_shoulder, calib_hand_end, arm_line_length);
 
@@ -957,6 +1018,8 @@ namespace WindowsFormsApp1
 
                                 //left
                                 SolidBrush brush_fill = new SolidBrush(Color.FromArgb(236, 228, 228));
+                                SolidBrush brush_fill_quick = new SolidBrush(Color.LightSeaGreen);
+                                SolidBrush brush_fill_slow = new SolidBrush(Color.Red);
                                 RectangleF left_rect =
                                     new RectangleF(calib_shoulder.X - (float)arm_line_length,
                                     calib_shoulder.Y - (float)arm_line_length
@@ -967,7 +1030,7 @@ namespace WindowsFormsApp1
 
                                 //Vector2 start_vector = new 
                                 //    Vector2(calib_left_hand_start.X- calib_left_shoulder.X, calib_left_hand_start.Y- calib_left_shoulder.Y);
-                                double round_count = Math.Floor(between_angle / split_angle_pie);
+                                round_count = Math.Floor(between_angle / split_angle_pie);
                                 Console.WriteLine("Angle: {0}", between_angle);
                                 //for (int i = 0; i < ((int)round_count); i++) {
                                 //    Vector2 new_vector= RotateBy(start_vector,-split_angle_pie,false);
@@ -982,18 +1045,21 @@ namespace WindowsFormsApp1
                                     final_angle = (float)between_angle - (float)round_count * split_angle_pie;
 
                                 }
-                                Pen pen_split = new Pen(Color.Red);
+                                Pen pen_split = new Pen(Color.Black);
                                 pen_split.Width = 3;
-                                pen_split.DashStyle = System.Drawing.Drawing2D.DashStyle.DashDot;
+                                //pen_split.DashStyle = System.Drawing.Drawing2D.DashStyle.DashDot;
 
                                 Color[] colors = new Color[] {Color.Orange,Color.Yellow,Color.Gold,Color.LightBlue
-                        ,Color.Blue, Color.Purple};
-                                if (round_count == acceleration.Count && round_count > 0)
+                        ,Color.Blue,Color.White,Color.Orange,Color.Yellow,Color.Gold,Color.LightBlue
+                        ,Color.Blue,Color.White,Color.Orange,Color.Yellow,Color.Gold,Color.LightBlue
+                        ,Color.Blue,Color.White};
+                                if (round_count <= acceleration.Count && round_count > 0)
                                 {
-                                    for (int i = 0; i < acceleration.Count; i++)
+                                    for (int i = 0; i < round_count; i++)
                                     {
 
-                                        Pen pen_arrow = new Pen(colors[i], (float)1.5);
+                                        //Pen pen_arrow = new Pen(color, (float)1);
+                                        Pen pen_arrow = new Pen(colors[i], (float)1);
                                         GraphicsPath capPath = new GraphicsPath();
                                         capPath.AddLine(-10, 0, 10, 0);
                                         capPath.AddLine(-10, 0, 0, 10);
@@ -1001,40 +1067,92 @@ namespace WindowsFormsApp1
 
                                         pen_arrow.CustomEndCap = new System.Drawing.Drawing2D.CustomLineCap(null, capPath);
 
-                                        System.Drawing.Font drawFont = new System.Drawing.Font("Arial", 15);
-                                        SolidBrush brush_string = new SolidBrush(colors[i]);
+                                        //System.Drawing.Font drawFont = new System.Drawing.Font("Arial", 10);
+                                        //SolidBrush brush_string = new SolidBrush(colors[i]);
 
 
                                         Console.WriteLine(split_point_list[i]);
 
                                         if (i == 0)
                                         {
-                                            e.Graphics.FillPolygon(brush_fill,
+                                            e.Graphics.FillPolygon(brush_fill_quick,
                                                 new PointF[] { calib_shoulder, calib_hand_start, split_point_list[i] });
                                             //e.Graphics.DrawLine(pen_start, calib_left_hand_start, left_split_point_list[i]);
 
                                             e.Graphics.DrawLine(pen_arrow, split_point_list[i],
                                                 CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                            //String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
+                                            //e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
+                                        }
+                                        else
+                                        {   
+                                            if(acceleration[i]>acceleration[i-1])
+                                                e.Graphics.FillPolygon(brush_fill_quick,
+                                                    new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            else
+                                                e.Graphics.FillPolygon(brush_fill_slow,
+                                                   new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            //e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
+
+                                            e.Graphics.DrawLine(pen_arrow, split_point_list[i],
+                                                CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                            //String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
+                                            //e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
+                                        }
+                                        e.Graphics.DrawLine(pen_split, calib_shoulder, split_point_list[i]);
+                                        pen_arrow.Dispose();
+                                    }
+                                    e.Graphics.FillPolygon(brush_fill_slow,
+                                                new PointF[] { calib_shoulder, split_point_list[(int)round_count - 1], fixed_calib_hand_end });
+                                    e.Graphics.DrawLine(pen_start, split_point_list[(int)round_count - 1], fixed_calib_hand_end);
+
+                                    for (int i = 0; i < round_count; i++)
+                                    {
+
+                                        ////Pen pen_arrow = new Pen(color, (float)1);
+                                        //Pen pen_arrow = new Pen(colors[i], (float)1);
+                                        //GraphicsPath capPath = new GraphicsPath();
+                                        //capPath.AddLine(-10, 0, 10, 0);
+                                        //capPath.AddLine(-10, 0, 0, 10);
+                                        //capPath.AddLine(0, 10, 10, 0);
+
+                                        //pen_arrow.CustomEndCap = new System.Drawing.Drawing2D.CustomLineCap(null, capPath);
+
+                                        System.Drawing.Font drawFont = new System.Drawing.Font("Arial", 10);
+                                        SolidBrush brush_string = new SolidBrush(Color.White);
+
+
+                                       // Console.WriteLine(split_point_list[i]);
+
+                                        if (i == 0)
+                                        {
+                                            //e.Graphics.FillPolygon(brush_fill_quick,
+                                            //    new PointF[] { calib_shoulder, calib_hand_start, split_point_list[i] });
+                                            ////e.Graphics.DrawLine(pen_start, calib_left_hand_start, left_split_point_list[i]);
+
+                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
+                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
                                             String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
                                             e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
                                         }
                                         else
                                         {
-                                            e.Graphics.FillPolygon(brush_fill,
-                                                new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
-                                            //e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
+                                            //if (acceleration[i] > acceleration[i - 1])
+                                            //    e.Graphics.FillPolygon(brush_fill_quick,
+                                            //        new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            //else
+                                            //    e.Graphics.FillPolygon(brush_fill_slow,
+                                            //       new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
+                                            ////e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
 
-                                            e.Graphics.DrawLine(pen_arrow, split_point_list[i],
-                                                CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
+                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
                                             String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
                                             e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
                                         }
-                                        e.Graphics.DrawLine(pen_split, calib_shoulder, split_point_list[i]);
-                                        pen_arrow.Dispose();
+                                        //e.Graphics.DrawLine(pen_split, calib_shoulder, split_point_list[i]);
+                                        //pen_arrow.Dispose();
                                     }
-                                    e.Graphics.FillPolygon(brush_fill,
-                                                new PointF[] { calib_shoulder, split_point_list[(int)round_count - 1], fixed_calib_hand_end });
-                                    e.Graphics.DrawLine(pen_start, split_point_list[(int)round_count - 1], fixed_calib_hand_end);
 
                                     if (save_state)
                                     {
@@ -1404,7 +1522,7 @@ namespace WindowsFormsApp1
                     }
 
                     // Coronal plane
-                    string[] lines = new string[15];
+                    string[] lines = new string[23];
                     if ((int)side_item == 0)
                     {
 
@@ -1416,28 +1534,25 @@ namespace WindowsFormsApp1
                        // String.Format("Motion time interval: ({0}) s", String.Join(", ", time_intervals.ToArray())),
                       //  String.Format("Motion acceleration: ({0}) m/s2", String.Join(", ", acceleration.ToArray()))};
 
-                        for (int i = 0; i <=acceleration.Count; i++) {
+                        for (int i = 0; i <round_count; i++) {
                             if (i == 0)
-                              
-                                lines[3+i+1]=String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
-                                 , new object[] { i, start_hand.Real.X, start_hand.Real.Y, start_hand.Real.Z, start_hand.Proj.X, start_hand.Proj.Y, start_hand.Proj.Z, 0, 0 ,motion_distance_saving});
-                            else
-                                lines[3 + i + 1] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
-                                    , new object[] { i, split_point_list_3d[i - 1].Real.X, split_point_list_3d[i - 1].Real.Y, split_point_list_3d[i - 1].Real.Z, split_point_list_3d[i - 1].Proj.X, split_point_list_3d[i - 1].Proj.Y, split_point_list_3d[i - 1].Proj.Z, time_intervals[i - 1], acceleration[i - 1] ,motion_distance_saving});
+                            {
 
+                                lines[3 + i + 1] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
+                                 , new object[] { i, start_hand.Real.X, start_hand.Real.Y, start_hand.Real.Z, start_hand.Proj.X, start_hand.Proj.Y, start_hand.Proj.Z, 0, 0, motion_distance_saving });
+                                lines[3 + i + 2] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
+                                                                    , new object[] { i+1, split_point_list_3d[i].Real.X, split_point_list_3d[i].Real.Y, split_point_list_3d[i].Real.Z, split_point_list_3d[i].Proj.X, split_point_list_3d[i].Proj.Y, split_point_list_3d[i].Proj.Z, time_intervals[i], acceleration[i], motion_distance_saving });
+                            }
+                            else
+                                lines[3 + i + 2] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
+                                                                    , new object[] { i+1, split_point_list_3d[i].Real.X, split_point_list_3d[i].Real.Y, split_point_list_3d[i].Real.Z, split_point_list_3d[i].Proj.X, split_point_list_3d[i].Proj.Y, split_point_list_3d[i].Proj.Z, time_intervals[i], acceleration[i], motion_distance_saving });
                         }
                     }
 
                     // Sagittal plane
                     else if ((int)side_item == 1)
                     {
-                        //lines = new string[]{ String.Format("Human arm length: {0:F} m", real_arm_length),
-                        //String.Format("Flexion angle: {0:F}", real_gap_angle),
-                        //String.Format("Motion area: {0:F} m2", real_area),
-                        //String.Format("Motion time interval: ({0}) s", String.Join(", ", time_intervals.ToArray())),
-                        //String.Format("Motion acceleration: ({0}) m/s2", String.Join(", ", acceleration.ToArray()))
-
-                        //};
+                        
 
 
                         lines[0] = String.Format("Human arm length: {0:F} m", real_arm_length);
@@ -1448,28 +1563,25 @@ namespace WindowsFormsApp1
                         // String.Format("Motion time interval: ({0}) s", String.Join(", ", time_intervals.ToArray())),
                         //  String.Format("Motion acceleration: ({0}) m/s2", String.Join(", ", acceleration.ToArray()))};
 
-                        for (int i = 0; i <= acceleration.Count; i++)
+                        for (int i = 0; i < round_count; i++)
                         {
                             if (i == 0)
+                            {
 
                                 lines[3 + i + 1] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
                                  , new object[] { i, start_hand.Real.X, start_hand.Real.Y, start_hand.Real.Z, start_hand.Proj.X, start_hand.Proj.Y, start_hand.Proj.Z, 0, 0, motion_distance_saving });
+                                lines[3 + i + 2] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
+                                                                    , new object[] { i+1, split_point_list_3d[i].Real.X, split_point_list_3d[i].Real.Y, split_point_list_3d[i].Real.Z, split_point_list_3d[i].Proj.X, split_point_list_3d[i].Proj.Y, split_point_list_3d[i].Proj.Z, time_intervals[i], acceleration[i], motion_distance_saving });
+                            }
                             else
-                                lines[3 + i + 1] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
-                                    , new object[] { i, split_point_list_3d[i - 1].Real.X, split_point_list_3d[i - 1].Real.Y, split_point_list_3d[i - 1].Real.Z, split_point_list_3d[i - 1].Proj.X, split_point_list_3d[i - 1].Proj.Y, split_point_list_3d[i - 1].Proj.Z, time_intervals[i - 1], acceleration[i - 1], motion_distance_saving });
-
+                                lines[3 + i + 2] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
+                                                                    , new object[] { i+1, split_point_list_3d[i].Real.X, split_point_list_3d[i].Real.Y, split_point_list_3d[i].Real.Z, split_point_list_3d[i].Proj.X, split_point_list_3d[i].Proj.Y, split_point_list_3d[i].Proj.Z, time_intervals[i], acceleration[i], motion_distance_saving });
                         }
                     }
 
                     //Arm-axis plane
                     else if ((int)side_item == 2) {
-                        //lines = new string[]{ String.Format("Human elbow length: {0:F} m", real_arm_length),
-                        //String.Format("External rotation: {0:F}", real_gap_angle),
-                        //String.Format("Motion area: {0:F} m2", real_area),
-                        //String.Format("Motion time interval: ({0}) s", String.Join(", ", time_intervals.ToArray())),
-                        //String.Format("Motion acceleration: ({0}) m/s2", String.Join(", ", acceleration.ToArray()))
-
-                        //};
+                        
 
                         lines[0] = String.Format("Human arm length: {0:F} m", real_arm_length);
                         lines[1] = String.Format("External rotation: {0:F}", real_gap_angle);
@@ -1477,16 +1589,19 @@ namespace WindowsFormsApp1
                         lines[3] = String.Format("Index      X_proj       Y_proj       Z_proj      X_real       Y_real       Z_real     Time_intervel(s)     Acceleration(m/s2)       motion_distance");
 
 
-                        for (int i = 0; i <= acceleration.Count; i++)
+                        for (int i = 0; i < round_count; i++)
                         {
                             if (i == 0)
+                            {
 
                                 lines[3 + i + 1] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
                                  , new object[] { i, start_hand.Real.X, start_hand.Real.Y, start_hand.Real.Z, start_hand.Proj.X, start_hand.Proj.Y, start_hand.Proj.Z, 0, 0, motion_distance_saving });
+                                lines[3 + i + 2] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
+                                                                    , new object[] { i+1, split_point_list_3d[i].Real.X, split_point_list_3d[i].Real.Y, split_point_list_3d[i].Real.Z, split_point_list_3d[i].Proj.X, split_point_list_3d[i].Proj.Y, split_point_list_3d[i].Proj.Z, time_intervals[i], acceleration[i], motion_distance_saving });
+                            }
                             else
-                                lines[3 + i + 1] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
-                                    , new object[] { i, split_point_list_3d[i - 1].Real.X, split_point_list_3d[i - 1].Real.Y, split_point_list_3d[i - 1].Real.Z, split_point_list_3d[i - 1].Proj.X, split_point_list_3d[i - 1].Proj.Y, split_point_list_3d[i - 1].Proj.Z, time_intervals[i - 1], acceleration[i - 1], motion_distance_saving });
-
+                                lines[3 + i + 2] = String.Format("{0}      {1}       {2}       {3}      {4}      {5}      {6}       {7}      {8}       {9}"
+                                                                    , new object[] { i+1, split_point_list_3d[i].Real.X, split_point_list_3d[i].Real.Y, split_point_list_3d[i].Real.Z, split_point_list_3d[i].Proj.X, split_point_list_3d[i].Proj.Y, split_point_list_3d[i].Proj.Z, time_intervals[i], acceleration[i], motion_distance_saving });
                         }
 
 
