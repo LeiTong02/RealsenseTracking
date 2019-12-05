@@ -192,9 +192,9 @@
             // label1
             // 
             this.label1.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.label1.Location = new System.Drawing.Point(6, 336);
+            this.label1.Location = new System.Drawing.Point(6, 368);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(192, 136);
+            this.label1.Size = new System.Drawing.Size(192, 104);
             this.label1.TabIndex = 12;
             this.label1.Text = "Tip: \r\nStart Recording: ~ ~\r\nStop Recording: ~ ~\r\nSave Result : save detection da" +
     "ta after stop recording!\r\nClear Up: clear all temporary data!\r\nBack to Settings:" +
@@ -243,7 +243,6 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
             this.ClientSize = new System.Drawing.Size(1062, 542);
             this.Controls.Add(this.panel_setting);
             this.Controls.Add(this.dataGridView1);

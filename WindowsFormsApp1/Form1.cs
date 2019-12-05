@@ -23,11 +23,15 @@ using Accord.Video.FFMPEG;
 using System.Drawing.Drawing2D;
 using AForge.Video;
 using System.Threading;
+using System.Diagnostics;
+using mycontracts;
 //using transform to rotate vectors
 namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
     {
+        public string passed_save_dir= "";
+
         private DirectBitmap _bitmap;
         private bool _visualizeColorImage = false;
         private bool _colorStreamEnabled = false;
@@ -67,6 +71,10 @@ namespace WindowsFormsApp1
 
         private bool calib_start_line = false;
         private bool calib_end_line = false;
+
+        private bool bool_time_series=false;
+
+
         private Joint start_shoulder;
         private Joint start_hand;
         private PointF calib_hand_start;
@@ -81,7 +89,8 @@ namespace WindowsFormsApp1
 
 
 
-
+        List<Joint> split_point_list_time_series = new List<Joint> { };
+        List<DateTime> split_point_datetimes = new List<DateTime> { };
         List<PointF> split_point_list = new List<PointF> { };
         List<Joint> split_point_list_3d = new List<Joint> { };
         int left_count=0;
@@ -119,21 +128,7 @@ namespace WindowsFormsApp1
             new Bone(JointType.RightKnee,JointType. RightAnkle, new Vector3(0, -1, 0)),
         };
 
-        void Capture() {
-
-            
-            //record_bitmaps.Add(bp);
-            //Thread.Sleep(100);
-        }
-        //public static Bitmap MatToBitmap(Mat image)
-        //{
-            
-        //    return OpenCvSharp.Extensions.BitmapConverter.ToBitmap(image);
-       // }
-        //public static Mat BitmapToMat(Bitmap image)
-        //{
-        //    return OpenCvSharp.Extensions.BitmapConverter.ToMat(image);
-        //}
+        
         public static List<double> Shoulder_angle (Joint torso, Joint collar, Joint shoulder, Joint hand,bool obtain_shoulder_length) {
 
             List<double> output = new List<double> { };
@@ -169,6 +164,54 @@ namespace WindowsFormsApp1
             return output;
 
         }
+
+        public static void RunPythonScript(string args = "", params string[] teps)
+        {
+            Process p = new Process();
+            string path = @"C://Users//hpsin//QT_RS//WindowsFormsApp1//save_csv.py";//(因为我没放debug下，所以直接写的绝对路径,替换掉上面的路径了)
+            p.StartInfo.FileName = @"C://Users//hpsin//Anaconda3//python.exe";//没有配环境变量的话，可以像我这样写python.exe的绝对路径。如果配了，直接写"python.exe"即可
+            string sArguments = path;
+            foreach (string sigstr in teps)
+            {
+                sArguments += " " + sigstr;//传递参数
+            }
+
+            sArguments += " " + args;
+
+            p.StartInfo.Arguments = sArguments;
+
+            p.StartInfo.UseShellExecute = false;
+
+            p.StartInfo.RedirectStandardOutput = true;
+
+            p.StartInfo.RedirectStandardInput = true;
+
+            p.StartInfo.RedirectStandardError = true;
+
+            p.StartInfo.CreateNoWindow = true;
+
+            p.Start();
+            p.BeginOutputReadLine();
+            p.OutputDataReceived += new DataReceivedEventHandler(p_OutputDataReceived);
+            Console.ReadLine();
+            p.WaitForExit();
+        }
+        //输出打印的信息
+        static void p_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+            {
+                AppendText(e.Data + Environment.NewLine);
+            }
+        }
+        public delegate void AppendTextCallback(string text);
+        public static void AppendText(string text)
+        {
+            Console.WriteLine(text);     //此处在控制台输出.py文件print的结果
+
+        }
+
+
         public static Boolean collinear(PointF p1, PointF p2 , PointF p3)
         {
             // Calculation the area of  
@@ -280,50 +323,22 @@ namespace WindowsFormsApp1
             //   parent.Refresh();
         }
 
-        private String saveFile(Bitmap bmp) {
-            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+        private void saveFile(Bitmap bmp) {
+            //SaveFileDialog saveFileDialog1 = new SaveFileDialog();
             
-            saveFileDialog1.Filter = "JPeg Image|*.jpg|Bitmap Image|*.bmp|Png Image|*.png";
-            saveFileDialog1.Title = "Save an Image File";
+            //saveFileDialog1.Filter = "JPeg Image|*.jpg|Bitmap Image|*.bmp|Png Image|*.png";
+            //saveFileDialog1.Title = "Save an Image File";
             
-            saveFileDialog1.ShowDialog(this);
-            String filename="";
-            // If the file name is not an empty string open it for saving.  
-            if (saveFileDialog1.FileName != "" )
-            {
-                // Saves the Image via a FileStream created by the OpenFile method.  
-                System.IO.FileStream fs =
-                   (System.IO.FileStream)saveFileDialog1.OpenFile();
-                // Saves the Image in the appropriate ImageFormat based upon the  
-                // File type selected in the dialog box.  
-                // NOTE that the FilterIndex property is one-based.  
-                switch (saveFileDialog1.FilterIndex)
-                { 
-                    case 1:
-                        
-                        bmp.Save(fs,
-                           System.Drawing.Imaging.ImageFormat.Jpeg);
-                        filename = saveFileDialog1.FileName;
-                        break;
-
-                    case 2:
-                        bmp.Save(fs,
-                           System.Drawing.Imaging.ImageFormat.Bmp);
-                        filename = saveFileDialog1.FileName;
-                        break;
-
-                    case 3:
-                        bmp.Save(fs,
-                           System.Drawing.Imaging.ImageFormat.Png);
-                        filename = saveFileDialog1.FileName;
-                        break;
-                    
-                }
-
-                fs.Close();
-                return filename;
-            }
-            return filename;
+            //saveFileDialog1.ShowDialog(this);
+            //String filename="";
+            //// If the file name is not an empty string open it for saving.  
+            //if (saveFileDialog1.FileName != "" )
+            //{
+            //    filename = saveFileDialog1.FileName;
+                
+            //    return filename;
+            //}
+            //return filename;
         }
         public Form1() {
             
@@ -434,6 +449,9 @@ namespace WindowsFormsApp1
         ~Form1()
         {
             _bitmap.Dispose();
+            
+            
+
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -451,6 +469,8 @@ namespace WindowsFormsApp1
                 _gestureRecognizer.OnNewGesturesEvent -= onNewGestures;
                 
                 Nuitrack.Release();
+
+                
             }
             catch (Exception exception)
             {
@@ -649,8 +669,14 @@ namespace WindowsFormsApp1
                                 calib_start_line = false;
                                 start_num = frame_count;
 
+                                //split_point_list_time_series.Add(start_hand);
+                                //split_point_datetimes.Add(DateTime.Now);
+                                bool_time_series = true;
+                            }
 
-                                
+                            if (bool_time_series) {
+                                split_point_list_time_series.Add(hand_joints);
+                                split_point_datetimes.Add(DateTime.Now);
 
                             }
 
@@ -660,7 +686,9 @@ namespace WindowsFormsApp1
                                 Pen pen_start = new Pen(Color.Red);
                                 //pen_start.Width = 5;
                                 e.Graphics.DrawLine(pen_start, calib_shoulder, calib_hand_start);
+
                                 
+                    
 
                             }
                             if (!calib_hand_start.IsEmpty)
@@ -681,6 +709,8 @@ namespace WindowsFormsApp1
                             if (calib_end_line == true)
                             {
                                 //obtain left Side body part joint 
+                                bool_time_series = false;
+
 
                                 Joint j_hand = new Joint();
                                 if (checked_direct == "left")
@@ -709,14 +739,16 @@ namespace WindowsFormsApp1
                                 {
                                     double time_interval = compute_seconds
                                         (split_second[i - 1], split_second[i]);
-                                    double accele = Math.Abs((motion_distance - last_speed * time_interval) * 2 / (time_interval * time_interval));
-                                    //double accele = Math.Abs(((motion_distance / time_interval) - last_speed) / time_interval);
-                                    last_speed = accele * time_interval;
+                                    double accele = Math.Abs((motion_distance / time_interval - last_speed) / time_interval);
+                                    last_speed = motion_distance / time_interval;
                                     time_intervals.Add((float)time_interval);
+                                  
                                     acceleration.Add((float)accele);
                                     Console.WriteLine("Time{0}: {1}, accele: {2}", i, time_interval, accele);
                                 }
-                                
+
+                           
+
                             }
                             if (!calib_hand_end.IsEmpty)
                             {
@@ -734,7 +766,7 @@ namespace WindowsFormsApp1
 
                                 //left
                                 SolidBrush brush_fill = new SolidBrush(Color.FromArgb(236, 228, 228));
-                                SolidBrush brush_fill_quick = new SolidBrush(Color.LightSeaGreen);
+                                SolidBrush brush_fill_quick = new SolidBrush(Color.FromArgb(30,243,36));
                                 SolidBrush brush_fill_slow = new SolidBrush(Color.Red);
                                 RectangleF left_rect =
                                     new RectangleF(calib_shoulder.X - (float)arm_line_length,
@@ -844,32 +876,11 @@ namespace WindowsFormsApp1
 
                                        
 
-                                        if (i == 0)
-                                        {
-                                            //e.Graphics.FillPolygon(brush_fill_quick,
-                                            //    new PointF[] { calib_shoulder, calib_hand_start, split_point_list[i] });
-                                            //e.Graphics.DrawLine(pen_start, calib_left_hand_start, left_split_point_list[i]);
-
-                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
-                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                        
+                                            
                                             String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
                                             e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
-                                        }
-                                        else
-                                        {
-                                            //if (acceleration[i] > acceleration[i - 1])
-                                            //    e.Graphics.FillPolygon(brush_fill_quick,
-                                            //        new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
-                                            //else
-                                            //    e.Graphics.FillPolygon(brush_fill_slow,
-                                            //        new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
-                                            ////e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
-
-                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
-                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
-                                            String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
-                                            e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
-                                        }
+                                        
                                         //e.Graphics.DrawLine(pen_split, calib_shoulder, split_point_list[i]);
                                         //pen_arrow.Dispose();
                                     }
@@ -940,6 +951,14 @@ namespace WindowsFormsApp1
                                 calib_start_line = false;
 
                                 start_num = frame_count;
+                                bool_time_series = true;
+                            }
+
+                            if (bool_time_series)
+                            {
+                                split_point_list_time_series.Add(hand_joints);
+                                split_point_datetimes.Add(DateTime.Now);
+
                             }
 
                             if (!calib_hand_start.IsEmpty)
@@ -967,7 +986,7 @@ namespace WindowsFormsApp1
                             if (calib_end_line == true)
                             {
                                 //obtain left Side body part joint 
-
+                                bool_time_series = false;
                                 Joint j_hand = new Joint();
                                 if (checked_direct == "left")
                                 {
@@ -995,9 +1014,10 @@ namespace WindowsFormsApp1
                                 {
                                     double time_interval = compute_seconds
                                         (split_second[i - 1], split_second[i]);
-                                    double accele = Math.Abs((motion_distance - last_speed * time_interval) * 2 / (time_interval * time_interval));
-                                    last_speed = accele * time_interval;
+                                    double accele = Math.Abs((motion_distance/time_interval - last_speed ) / time_interval);
+                                    last_speed = motion_distance/time_interval;
                                     time_intervals.Add((float)time_interval);
+                                   
                                     acceleration.Add((float)accele);
                                     Console.WriteLine("Time{0}: {1}, accele: {2}", i, time_interval, accele);
                                 }
@@ -1018,7 +1038,7 @@ namespace WindowsFormsApp1
 
                                 //left
                                 SolidBrush brush_fill = new SolidBrush(Color.FromArgb(236, 228, 228));
-                                SolidBrush brush_fill_quick = new SolidBrush(Color.LightSeaGreen);
+                                SolidBrush brush_fill_quick = new SolidBrush(Color.FromArgb(30,243,36));
                                 SolidBrush brush_fill_slow = new SolidBrush(Color.Red);
                                 RectangleF left_rect =
                                     new RectangleF(calib_shoulder.X - (float)arm_line_length,
@@ -1126,27 +1146,13 @@ namespace WindowsFormsApp1
 
                                         if (i == 0)
                                         {
-                                            //e.Graphics.FillPolygon(brush_fill_quick,
-                                            //    new PointF[] { calib_shoulder, calib_hand_start, split_point_list[i] });
-                                            ////e.Graphics.DrawLine(pen_start, calib_left_hand_start, left_split_point_list[i]);
-
-                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
-                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                           
                                             String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
                                             e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
                                         }
                                         else
                                         {
-                                            //if (acceleration[i] > acceleration[i - 1])
-                                            //    e.Graphics.FillPolygon(brush_fill_quick,
-                                            //        new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
-                                            //else
-                                            //    e.Graphics.FillPolygon(brush_fill_slow,
-                                            //       new PointF[] { calib_shoulder, split_point_list[i - 1], split_point_list[i] });
-                                            ////e.Graphics.DrawLine(pen_start, left_split_point_list[i - 1], left_split_point_list[i]);
-
-                                            //e.Graphics.DrawLine(pen_arrow, split_point_list[i],
-                                            //    CalculatePoint(split_point_list[i], split_point_list[i + 1], 40));
+                                           
                                             String accele_text = String.Format("{0:F} m/s2", acceleration[i]);
                                             e.Graphics.DrawString(accele_text, drawFont, brush_string, split_point_list[i]);
                                         }
@@ -1444,6 +1450,7 @@ namespace WindowsFormsApp1
 
         private void clear_line_bt_Click(object sender, EventArgs e)
         {
+            bool_time_series = false;
             start_num = 0;
             motion_distance_saving = 0;
             end_num = 99;
@@ -1457,7 +1464,11 @@ namespace WindowsFormsApp1
             time_intervals.Clear();
             acceleration.Clear();
             measured_joints.Clear();
+            split_point_list_time_series.Clear();
+            split_point_datetimes.Clear();
+            record_bitmaps.Clear();
             save_bmp = false;
+            bool_time_series = false;
             //checked_direct = "";
 
             ///if (front_or_side_box.SelectedItem != null) {
@@ -1482,36 +1493,42 @@ namespace WindowsFormsApp1
             if (!calib_hand_end.IsEmpty && !calib_hand_end.IsEmpty)
             {
                 DialogResult dialogResult = MessageBox.Show("Whether to save data with video?", "option", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
-                
 
-               
-     
                 //Bitmap final_bmp = new Bitmap(record_bitmaps[start_num]);
                 Console.WriteLine("record length: {0}, start: {1}, end: {2}"
                     ,record_bitmaps.Count,start_num,end_num);
                 //bmp.Save("C://Users//hpsin//Desktop//test.png", ImageFormat.Png);
-                String filename = saveFile(final_plot);
+                //String filename = saveFile(final_plot);
                 
-                if (filename == "")
+                if (passed_save_dir == "")
                 {
                     clear_line_bt_Click(sender, e);
                 }
                 else
                 {
                     
-
-                    string file_image_name = Path.GetFileName(filename);
-                    string directory_path = Path.GetDirectoryName(filename);
+              
+                    //string file_image_name = Path.GetFileName(filename);
+                    //string directory_path = Path.GetDirectoryName(filename);
                     string plane_name = front_or_side_box.SelectedItem.ToString();
-                    string txt_name = file_image_name.Split('.')[0]+plane_name.Split(' ')[0] + "_report.txt";
-                    string txt_path = Path.Combine(directory_path, txt_name);
-                    string avi_name = file_image_name.Split('.')[0] + plane_name.Split(' ')[0] + ".avi";
+                    //string Dir_path = file_image_name.Split('.')[0] + plane_name.Split(' ')[0];
+                    string Dir_path = Path.Combine(passed_save_dir, plane_name.Split(' ')[0]);
+                    Console.WriteLine(Dir_path);
+                    System.IO.Directory.CreateDirectory(Dir_path);
 
+                   // string txt_name = file_image_name.Split('.')[0]+plane_name.Split(' ')[0] + "_report.txt";
+                   // string txt_name_series = file_image_name.Split('.')[0] + plane_name.Split(' ')[0] + "_series.txt";
+
+                    string txt_path_series = Path.Combine(Dir_path, String.Format("series_{0}.txt",checked_direct));  
+                    string txt_path = Path.Combine(Dir_path, String.Format("report_{0}.txt", checked_direct));
+                    string avi_name =  String.Format("video_{0}.avi",checked_direct);
+
+                    final_plot.Save(Path.Combine(Dir_path,String.Format("Result_{0}.png",checked_direct)));
                     if (dialogResult == DialogResult.Yes)
                     {
                         //do something
                         VideoFileWriter writer = new VideoFileWriter();
-                        writer.Open(Path.Combine(directory_path, avi_name), 848+200, 480+200, 25, VideoCodec.MPEG4);
+                        writer.Open(Path.Combine(Dir_path, avi_name), 848+200, 480+200, 25, VideoCodec.MPEG4);
       
                         for (int i = start_num-1; i <= end_num; i++)
                         {
@@ -1521,6 +1538,51 @@ namespace WindowsFormsApp1
                         writer.Close();
                     }
 
+                    // Time_series save
+                    string[] time_lines = new string[split_point_datetimes.Count];
+                    double interval_time_series;
+
+                    double real_gap_angle_local;
+         
+                    double motion_distance_local;
+                    double last_speed_local = 0;
+                    double accele_local;
+                    
+
+                    for (int i = 0; i < split_point_datetimes.Count; i++)
+                    {
+                        if (i == 0)
+                        {
+                            interval_time_series = 0;
+                            real_gap_angle_local = 0;
+                            motion_distance_local = 0;
+                            accele_local = 0;
+                            last_speed_local = 0; 
+
+                        }
+                        else
+                        {
+                            interval_time_series = compute_seconds
+                                        (split_point_datetimes[i - 1], split_point_datetimes[i]);
+
+                            real_gap_angle_local = Shoulder_angle(split_point_list_time_series[i], start_shoulder, start_shoulder, split_point_list_time_series[i-1], false).ElementAt(1);
+                            motion_distance_local = 2 * Math.PI * real_arm_length * (real_gap_angle_local / 360);
+                            accele_local = Math.Abs((motion_distance_local / interval_time_series - last_speed_local) / interval_time_series);
+                            last_speed_local = motion_distance_local / interval_time_series;
+                        }
+                        time_lines[i] = String.Format("{0},{1},{2},{3},{4},{5},{6},{7}",
+                            split_point_list_time_series[i].Real.X,
+                            split_point_list_time_series[i].Real.Y,
+                            split_point_list_time_series[i].Real.Z,
+                            split_point_list_time_series[i].Proj.X, 
+                            split_point_list_time_series[i].Proj.Y, 
+                            split_point_list_time_series[i].Proj.Z,
+                            interval_time_series,
+                            accele_local
+                            );
+
+                    }
+                    System.IO.File.WriteAllLines(@txt_path_series, time_lines);
                     // Coronal plane
                     string[] lines = new string[23];
                     if ((int)side_item == 0)
@@ -1529,7 +1591,7 @@ namespace WindowsFormsApp1
                         lines[0] = String.Format("Human arm length: {0:F} m", real_arm_length);
                         lines[1] = String.Format("Abduction angle: {0:F}", real_gap_angle);
                         lines[2] = String.Format("Motion area: {0:F} m2", real_area);
-                        lines[3] = String.Format("Index      X_proj       Y_proj       Z_proj      X_real       Y_real       Z_real     Time_intervel(s)     Acceleration(m/s2)       motion_distance");
+                        lines[3] = String.Format("Index      X_Real       Y_Real       Z_Real      X_Proj       Y_Proj       Z_Proj     Time_intervel(s)     Acceleration(m/s2)       motion_distance");
                         
                        // String.Format("Motion time interval: ({0}) s", String.Join(", ", time_intervals.ToArray())),
                       //  String.Format("Motion acceleration: ({0}) m/s2", String.Join(", ", acceleration.ToArray()))};
@@ -1548,7 +1610,7 @@ namespace WindowsFormsApp1
                                                                     , new object[] { i+1, split_point_list_3d[i].Real.X, split_point_list_3d[i].Real.Y, split_point_list_3d[i].Real.Z, split_point_list_3d[i].Proj.X, split_point_list_3d[i].Proj.Y, split_point_list_3d[i].Proj.Z, time_intervals[i], acceleration[i], motion_distance_saving });
                         }
                     }
-
+                    
                     // Sagittal plane
                     else if ((int)side_item == 1)
                     {
@@ -1610,8 +1672,19 @@ namespace WindowsFormsApp1
                     
                     System.IO.File.WriteAllLines(@txt_path, lines);
                     //produce txt report
-                    
+
+
+                    string[] strArr = new string[2];//参数列表
+
+                    strArr[0] = Dir_path;
+                    strArr[1] = checked_direct;
+                    RunPythonScript("-u", strArr);
+
+
                     clear_line_bt_Click(sender, e);
+                    
+                    
+
                 }
 
             }
@@ -1703,6 +1776,7 @@ namespace WindowsFormsApp1
                     split_second.Clear();
 
                     Form2 form_setting = new Form2(example_image_path);
+                    
                     form_setting.StartPosition = FormStartPosition.CenterParent;
                     form_setting.ShowDialog();
 
@@ -1733,7 +1807,14 @@ namespace WindowsFormsApp1
             clear_line_bt_Click(sender, e);
         }
 
-        
+        private void button_close_Click(object sender, EventArgs e)
+        {
+            this.Hide();
+            Form_Main form1 = new Form_Main();
+            
+            form1.Closed += (s, args) => this.Dispose();
+            form1.Show();
+        }
     }
 
 

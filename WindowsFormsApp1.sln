@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsFormsApp1", "Windows
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup1", "Setup1\Setup1.vdproj", "{D9004062-97C4-42E4-8FBF-2BCDFE0CBA0C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mycontracts", "..\..\Desktop\Simple-Student-Information-management-system-master\mycontracts.csproj", "{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,18 @@ Global
 		{D9004062-97C4-42E4-8FBF-2BCDFE0CBA0C}.Release|Any CPU.ActiveCfg = Release
 		{D9004062-97C4-42E4-8FBF-2BCDFE0CBA0C}.Release|x64.ActiveCfg = Release
 		{D9004062-97C4-42E4-8FBF-2BCDFE0CBA0C}.Release|x86.ActiveCfg = Release
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Debug|x64.Build.0 = Debug|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Debug|x86.Build.0 = Debug|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Release|x64.ActiveCfg = Release|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Release|x64.Build.0 = Release|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Release|x86.ActiveCfg = Release|Any CPU
+		{D909BFF6-239B-4DFE-BD19-4CAC42BF0F2F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
